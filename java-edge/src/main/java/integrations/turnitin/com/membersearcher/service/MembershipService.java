@@ -1,9 +1,13 @@
 package integrations.turnitin.com.membersearcher.service;
 
 import java.util.concurrent.CompletableFuture;
-
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import integrations.turnitin.com.membersearcher.client.MembershipBackendClient;
 import integrations.turnitin.com.membersearcher.model.MembershipList;
+import integrations.turnitin.com.membersearcher.model.User;
+import integrations.turnitin.com.membersearcher.model.UserList;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -22,14 +26,22 @@ public class MembershipService {
 	 * @return A CompletableFuture containing a fully populated MembershipList object.
 	 */
 	public CompletableFuture<MembershipList> fetchAllMembershipsWithUsers() {
-		return membershipBackendClient.fetchMemberships()
-				.thenCompose(members -> {
-					CompletableFuture<?>[] userCalls = members.getMemberships().stream()
-							.map(member -> membershipBackendClient.fetchUser(member.getUserId())
-									.thenApply(member::setUser))
-							.toArray(CompletableFuture<?>[]::new);
-					return CompletableFuture.allOf(userCalls)
-							.thenApply(nil -> members);
-				});
+		CompletableFuture<MembershipList> membershipsFuture = membershipBackendClient.fetchMemberships();
+
+		CompletableFuture<UserList> usersFuture = membershipBackendClient.fetchUsers();
+
+		return membershipsFuture.thenCombine(usersFuture, (memberships, users) -> {
+			// Create a map of user ID to User object for efficient lookup
+			Map<String, User> userMap = users.getUsers().stream()
+					.collect(Collectors.toMap(User::getId, Function.identity()));
+
+			// Associate each membership with its user using the userMap
+			memberships.getMemberships().forEach(member -> {
+				User user = userMap.get(member.getUserId());
+				member.setUser(user);
+			});
+
+			return memberships;
+		});
 	}
 }

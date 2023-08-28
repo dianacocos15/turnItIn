@@ -19,7 +19,7 @@ public class ApiController {
 	@Autowired
 	private MembershipService membershipService;
 
-	@GetMapping("/course/members")
+	@GetMapping("/course/users")
 	public CompletableFuture<MembershipList> fetchAllMemberships() {
 		return membershipService.fetchAllMembershipsWithUsers();
 	}

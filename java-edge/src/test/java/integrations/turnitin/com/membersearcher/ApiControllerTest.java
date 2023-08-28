@@ -59,7 +59,7 @@ public class ApiControllerTest {
 				));
 		when(membershipService.fetchAllMembershipsWithUsers()).thenReturn(CompletableFuture.completedFuture(members));
 
-		final MockHttpServletRequestBuilder request = MockMvcRequestBuilders.get("/api/course/members");
+		final MockHttpServletRequestBuilder request = MockMvcRequestBuilders.get("/api/course/users");
 
 		final MvcResult result = mvc.perform(request).andReturn();
 		mvc.perform(asyncDispatch(result))
